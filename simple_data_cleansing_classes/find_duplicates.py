@@ -1,5 +1,5 @@
-from data import Data
-from project import Project
+from .data import Data
+from .project import Project
 import pandas as pd
 import os
 
