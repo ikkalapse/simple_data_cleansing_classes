@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from project import Project
+from .project import Project
 
 
 class Data:
