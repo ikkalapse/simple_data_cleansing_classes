@@ -9,7 +9,7 @@ class Data:
 
     id_column = None  # Name of column with ID of objects
 
-    prefix = None
+    prefix = ''
 
     converters = None  # Converters for reading data using Pandas
 

@@ -20,10 +20,10 @@ class FindDuplicates:
         self.duples_wide_filename = "duples_wide.csv"
         self.duples_long_filename = "duples_long.csv"
         # Initial values of class variables
+        self.duples_data = None
         self._duples_wide_data = None  # Duplicates data in wide format
         self._duples_long_data = None  # Duplicates data in long format
         # Clustered duplicates data
-        self.duples_data = None
         self.clusters = None
         self.duplicates = None
 
