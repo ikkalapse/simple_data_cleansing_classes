@@ -7,17 +7,16 @@ class Data:
 
     project = None  # Project
 
-    obj_id_col = None  # Name of column with ID of objects
+    id_column = None  # Name of column with ID of objects
 
     prefix = None
 
     converters = None  # Converters for reading data using Pandas
 
-    def __init__(self, project: Project, obj_id_col, prefix='', **kwargs):
-        # Project name
+    def __init__(self, project: Project, id_column: str, **kwargs):
         self.project = project
-        self.obj_id_col = obj_id_col
-        self.prefix = prefix
+        self.id_column = id_column
+        self.prefix = kwargs.get('prefix', self.prefix)
         self.converters = kwargs.get('converters', self.converters)
         # Files
         self.data_filename = "_".join([self.prefix, "data.csv"])
