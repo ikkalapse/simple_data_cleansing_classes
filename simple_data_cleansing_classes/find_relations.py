@@ -3,14 +3,9 @@ from abc import ABC
 import pandas as pd
 import os
 
-try:
-    from .data import Data
-    from .project import Project
-    from .finder import Finder
-except:
-    from simple_data_cleansing_classes.data import Data
-    from simple_data_cleansing_classes.project import Project
-    from simple_data_cleansing_classes.finder import Finder
+from .data import Data
+from .project import Project
+from .finder import Finder
 
 
 class FindRelations(Finder, ABC):

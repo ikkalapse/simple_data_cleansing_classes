@@ -2,12 +2,8 @@ import pandas as pd
 import os
 import re
 
-try:
-    from .data import Data
-    from .project import Project
-except:
-    from simple_data_cleansing_classes.data import Data
-    from simple_data_cleansing_classes.project import Project
+from .data import Data
+from .project import Project
 
 
 class Finder:
@@ -23,8 +19,10 @@ class Finder:
         self.data = list(args)  # dataframes into list
         self.matches_column = kwargs.get('matches_column', self.matches_column)
         # Files
-        self.matches_filename = self.matches_column + ".csv"
-        self.matches_pairwise_filename = "_".join([self.matches_column, "pairwise"]) + ".csv"
+        self.matches_filename = os.path.join(project.project_dir,
+                                             self.matches_column + ".csv")
+        self.matches_pairwise_filename = os.path.join(project.project_dir,
+                                                      "_".join([self.matches_column, "pairwise"]) + ".csv")
         # Initial values of class variables
         self._matches = None  # Working dict for saving search results
         self._df_matches = None  # Matches dataframe
