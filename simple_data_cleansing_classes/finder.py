@@ -56,7 +56,7 @@ class Finder:
         for item in self._df_matches[[self.matches_column]].itertuples(index=False):
             # matches list for current item
             item_matches = []
-            matches_list = item[1] if type(item[1]) == list else eval(item[1])
+            matches_list = item[0] if type(item[0]) == list else eval(item[0])
             # if matches column contains a list of matches
             if len(matches_list) > 0:
                 # get every row in matches
