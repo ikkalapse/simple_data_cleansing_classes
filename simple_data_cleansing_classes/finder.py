@@ -119,6 +119,5 @@ class Finder:
                 self.__dict__['data'][int(ind[0]) - 1] = value
             except IndexError:
                 self.__dict__['data'].append(value)
-            print(self.__dict__['data'])
         else:
             self.__dict__[name] = value
