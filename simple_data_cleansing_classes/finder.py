@@ -104,8 +104,8 @@ class Finder:
         return converters
 
     def __getattr__(self, name):
-        if name not in self.__dict__ and 'data_' in name:
-            ind = re.findall(r'^data_([0-9]+)$', name)
+        ind = re.findall(r'^data_([0-9]+)$', name)
+        if name not in self.__dict__ and len(ind) == 1:
             try:
                 self.__dict__[name] = self.data[int(ind[0]) - 1]
             except:
@@ -113,8 +113,8 @@ class Finder:
         return self.__dict__[name]
 
     def __setattr__(self, name, value):
-        if 'data_' in name:
-            ind = re.findall(r'^data_([0-9]+)$', name)
+        ind = re.findall(r'^data_([0-9]+)$', name)
+        if len(ind) == 1:
             try:
                 self.__dict__['data'][int(ind[0]) - 1] = value
             except IndexError:
