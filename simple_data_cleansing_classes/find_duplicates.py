@@ -40,7 +40,7 @@ class FindDuplicates(Finder, ABC):
         self._matches_clusters = None
         self.matches_wide_filename = self.matches_column + '_wide.csv'
         self.matches_long_filename = self.matches_column + '_long.csv'
-        self.data_1_output_columns = kwargs.get("data_1_output_columns", self.data_1.data.columns)
+        self.data_1_output_columns = kwargs.get("data_1_output_columns", list(self.data_1.data.columns))
         self.clusters_column = kwargs.get("clusters_column", self.clusters_column)
 
     def process(self):
