@@ -1,18 +1,22 @@
+from abc import ABC
+
 from .data import Data
 from .project import Project
+from .finder import Finder
 import pandas as pd
 import os
 
 
-class FindDuplicates:
-
+class FindDuplicates(Finder, ABC):
     data = None  # Data for searching duplicates
 
     project = None  # Project where to store duplicates
 
     result_cols = None  # List of columns in result dataframe
 
-    def __init__(self, project: Project, data: Data):
+    clusters_column = 'matches_cluster'
+
+    '''def __init__(self, project: Project, data: Data):
 
         self.data = data
         self.project = project
@@ -25,121 +29,117 @@ class FindDuplicates:
         self._duples_long_data = None  # Duplicates data in long format
         # Clustered duplicates data
         self.clusters = None
-        self.duplicates = None
+        self.duplicates = None'''
+
+    def __init__(self, project: Project, data: Data, **kwargs):
+
+        Finder.__init__(self, project, **kwargs)
+        self.data_1 = data
+        self._df_matches_wide = None
+        self._df_matches_long = None
+        self._matches_clusters = None
+        self.matches_wide_filename = self.matches_column + '_wide.csv'
+        self.matches_long_filename = self.matches_column + '_long.csv'
+        self.data_1_output_columns = kwargs.get("data_1_output_columns", None)  # self.data_1.data.columns)
+        self.clusters_column = kwargs.get("clusters_column", self.clusters_column)
 
     def process(self):
         """Searching, clustering and saving duplicates."""
 
-        self.search_duplicates()
-        self.add_duplicates()
-        self.cluster_duplicates()
+        Finder.process(self)
+        self.make_clusters()
         self.make_wide()
         self.make_long()
 
-    def search_duplicates(self):
-        raise NotImplementedError
-
-    def add_duplicates(self):
-        self.data.data_norm['duplicates'] = self.duplicates
-        self.data.data_norm.to_csv(self.data.data_norm_filepath, index=False)
-
     def make_wide(self):
+        """Merging pairwise dataframe with data (source and target items)."""
+
         try:
-            self._duples_wide_data = pd.merge(self.duples_data,
-                                              self.data.data_norm[self.result_cols],
-                                              on=self.data.id_column)
-            self._duples_wide_data = pd.merge(self._duples_wide_data,
-                                              self.data.data_norm[self.result_cols],
-                                              left_on='duplicate_id', right_on=self.data.id_column,
-                                              suffixes=('-src', '-dupl')) \
-                .rename(columns={self.data.id_column + '-src': self.data.id_column}) \
-                .drop([self.data.id_column + '-dupl'], axis=1)
-            self._duples_wide_data.to_csv(os.path.join(self.project.duplicates_dir, self.duples_wide_filename))
+            df_1 = self.data_1.data_norm[self.data_1_output_columns] \
+                if self.data_1_output_columns is not None \
+                else self.data_1.data
+
+            self._df_matches_wide = pd.merge(self.df_matches_pairwise,
+                                             df_1.reset_index(drop=True),
+                                             left_on='source_id',
+                                             right_on=self.data_1.id_column)
+            self._df_matches_wide = pd.merge(self._df_matches_wide,
+                                             df_1.reset_index(drop=True),
+                                             left_on='target_id',
+                                             right_on=self.data_1.id_column,
+                                             suffixes=('-src', '-trg')) \
+                .rename(columns={self.data_1.id_column + '-src': self.data_1.id_column}) \
+                .drop([self.data_1.id_column + '-trg'], axis=1)
+            self._df_matches_wide.to_csv(os.path.join(self.project.project_dir, self.matches_wide_filename))
         except Exception as e:
-            raise Exception("Unable to create wide dataframe with duplicates!") from e
+            raise Exception("Unable to create wide dataframe!") from e
 
     def make_long(self):
         try:
             df_wide = self.duples_wide_data
             df_wide["id"] = df_wide.index
             df_long = pd.wide_to_long(df_wide,
-                                      stubnames=self.result_cols[1:],
+                                      stubnames=self.data_1_output_columns.remove(self.data_1.id_column),
                                       sep='-',
                                       suffix=r'\w+',
-                                      i=['duplicates_cluster', 'id'],
+                                      i=[self.clusters_column, 'id'],
                                       j='source').reset_index().drop(["id"], axis=1)
-            df_long.loc[df_long['source'] == 'dupl', self.data.id_column] = df_long['duplicate_id']
-            df_long.drop(["source", "duplicate_id"], axis=1, inplace=True)
-            df_long.drop_duplicates(subset=[self.data.id_column, 'duplicates_cluster'],
+            df_long.loc[df_long['source'] == 'trg', self.data_1.id_column] = df_long['target_id']
+            df_long.drop(["source", "target_id"], axis=1, inplace=True)
+            df_long.drop_duplicates(subset=[self.data_1.id_column, self.clusters_column],
                                     keep='first',
                                     inplace=True)
-            self._duples_long_data = df_long
-            self._duples_long_data.to_csv(os.path.join(self.project.duplicates_dir, self.duples_long_filename))
+            self._df_matches_long = df_long
+            self._df_matches_long.to_csv(os.path.join(self.project.project_dir, self.matches_long_filename))
         except Exception as e:
-            raise Exception("Unable to create long dataframe with duplicates") from e
+            raise Exception("Unable to create long dataframe!") from e
 
-    def collect_duplicates_clusters(self, obj_id, cluster, df):
-        res = df[df[self.data.id_column] == obj_id][[self.data.id_column, 'duplicate_id']]
+    def _collect_clusters(self, obj_id, cluster, df):
+        res = df[df[self.data_1.id_column] == obj_id][[self.data_1.id_column, 'target_id']]
         for r in res.itertuples(index=False):
             cluster.append(r[0])
             cluster.append(r[1])
-            self.collect_duplicates_clusters(r[1], cluster, df)
+            self._collect_clusters(r[1], cluster, df)
         return sorted(list(set(cluster)))
 
-    def cluster_duplicates(self):
-        df_pairs = self.extract_pairs()
+    def make_clusters(self):
+        """Set cluster id for every row in pairwise dataframe."""
+
+        df_pairs = self.df_matches_pairwise()
         clusters = []
-        for row in df_pairs.sort_values(by=self.data.id_column).itertuples(index=False):
+        for row in df_pairs[['source_id', 'target_id', 'info']].sort_values(by='source_id').itertuples(index=False):
             if (len(clusters) > 0 and row[0] not in clusters[-1]) or len(clusters) == 0:
-                cluster = self.collect_duplicates_clusters(row[1], [row[0], row[1]], df_pairs)
+                cluster = self._collect_clusters(row[1], [row[0], row[1]], df_pairs)
                 clusters.append(cluster)
         for i, cl in enumerate(clusters):
-            df_pairs.loc[df_pairs[self.data.id_column].isin(cl), 'duplicates_cluster'] = i
-            df_pairs.loc[df_pairs['duplicate_id'].isin(cl), 'duplicates_cluster'] = i
-        df_pairs['duplicates_cluster'] = df_pairs['duplicates_cluster'].astype(int)
-        self.clusters = clusters
-        self.duples_data = df_pairs
-
-    def extract_pairs(self):
-        if 'duplicates' in self.data.data_norm.columns:
-            df_duples = self.data.data_norm[[self.data.id_column, 'duplicates']].copy()
-            df_duples.fillna('', inplace=True)
-            duplicates_list = list()
-            for item in df_duples[[self.data.id_column, 'duplicates']].itertuples(index=False):
-                item_matches = []
-                duples_list = item[1] if type(item[1]) == list else eval(item[1])
-                if len(duples_list) > 0:
-                    for row in duples_list:  # eval
-                        dupl_item = {self.data.id_column: row['source_id'],
-                                     'duplicate_id': row['duplicate_id']}
-                        del row['duplicate_id']
-                        del row['source_id']
-                        dupl_item['duplicates'] = row
-                        item_matches.append(dupl_item)
-                    if len(item_matches) > 0:
-                        duplicates_list += item_matches
-            return pd.DataFrame(duplicates_list)[[self.data.id_column, 'duplicate_id']]
-        else:
-            raise Exception("Unable to extract duplicates list!")
+            df_pairs.loc[df_pairs['source_id'].isin(cl), self.clusters_column] = i
+            df_pairs.loc[df_pairs['target_id'].isin(cl), self.clusters_column] = i
+        df_pairs[self.clusters_column] = df_pairs[self.clusters_column].astype(int)
+        df_pairs.to_csv(self.matches_pairwise_filename, index=False)
+        # self._matches_clusters = clusters
 
     @property
-    def duples_wide_data(self):
-        if self._duples_wide_data is None:
+    def df_matches_wide(self):
+        """Return pandas dataframe contains matches."""
+
+        if self._df_matches_wide is None and os.path.isfile(self.matches_wide_filename):
             try:
-                self._duples_wide_data = pd.read_csv(self.duples_wide_filename,
-                                                     converters=self.data.converters)
-                self._duples_wide_data.fillna('', inplace=True)
-            except:
-                pass
-        return self._duples_wide_data
+                self._df_matches_wide = pd.read_csv(self.matches_wide_filename,
+                                                    converters=self.converters)
+                self._df_matches_wide.fillna('', inplace=True)
+            except Exception as e:
+                raise Exception("Unable to read matches wide dataframe!") from e
+        return self._df_matches_wide
 
     @property
-    def duples_long_data(self):
-        if self._duples_long_data is None:
+    def df_matches_long(self):
+        """Return pandas dataframe contains matches."""
+
+        if self._df_matches_long is None and os.path.isfile(self.matches_long_filename):
             try:
-                self._duples_long_data = pd.read_csv(self.duples_long_filename,
-                                                     converters=self.data.converters)
-                self._duples_long_data.fillna('', inplace=True)
-            except:
-                pass
-        return self._duples_long_data
+                self._df_matches_long = pd.read_csv(self.matches_wide_filename,
+                                                    converters=self.converters)
+                self._df_matches_long.fillna('', inplace=True)
+            except Exception as e:
+                raise Exception("Unable to read matches wide dataframe!") from e
+        return self._df_matches_long
