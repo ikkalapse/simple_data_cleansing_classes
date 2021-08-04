@@ -39,7 +39,7 @@ class Data:
             if os.path.isfile(self.data_filepath) is not True:
                 try:
                     self._data = self.read_data()
-                    self._data.to_csv(self.data_filepath)
+                    self._data.to_csv(self.data_filepath, index=False)
                 except Exception as e:
                     raise Exception("Unable to import the data!") from e
             try:
