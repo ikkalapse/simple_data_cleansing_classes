@@ -105,7 +105,7 @@ class FindDuplicates(Finder, ABC):
     def make_clusters(self):
         """Set cluster id for every row in pairwise dataframe."""
 
-        df_pairs = self.df_matches_pairwise()
+        df_pairs = self.df_matches_pairwise
         clusters = []
         for row in df_pairs[['source_id', 'target_id', 'info']].sort_values(by='source_id').itertuples(index=False):
             if (len(clusters) > 0 and row[0] not in clusters[-1]) or len(clusters) == 0:
