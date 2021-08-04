@@ -76,14 +76,17 @@ class FindDuplicates(Finder, ABC):
 
     def make_long(self):
         try:
-            df_wide = self.duples_wide_data
+            df_wide = self.df_matches_wide
             df_wide["id"] = df_wide.index
             df_long = pd.wide_to_long(df_wide,
-                                      stubnames=self.data_1_output_columns.remove(self.data_1.id_column),
+                                      stubnames=[col for col in self.data_1_output_columns
+                                                 if col != self.data_1.id_column],
                                       sep='-',
                                       suffix=r'\w+',
                                       i=[self.clusters_column, 'id'],
-                                      j='source').reset_index().drop(["id"], axis=1)
+                                      j='source') \
+                .reset_index() \
+                .drop(["id"], axis=1)
             df_long.loc[df_long['source'] == 'trg', self.data_1.id_column] = df_long['target_id']
             df_long.drop(["source", "target_id"], axis=1, inplace=True)
             df_long.drop_duplicates(subset=[self.data_1.id_column, self.clusters_column],
