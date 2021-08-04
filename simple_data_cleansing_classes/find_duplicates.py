@@ -40,7 +40,7 @@ class FindDuplicates(Finder, ABC):
         self._matches_clusters = None
         self.matches_wide_filename = self.matches_column + '_wide.csv'
         self.matches_long_filename = self.matches_column + '_long.csv'
-        self.data_1_output_columns = kwargs.get("data_1_output_columns", None)  # self.data_1.data.columns)
+        self.data_1_output_columns = kwargs.get("data_1_output_columns", self.data_1.data.columns)
         self.clusters_column = kwargs.get("clusters_column", self.clusters_column)
 
     def process(self):
@@ -95,7 +95,7 @@ class FindDuplicates(Finder, ABC):
             raise Exception("Unable to create long dataframe!") from e
 
     def _collect_clusters(self, obj_id, cluster, df):
-        res = df[df[self.data_1.id_column] == obj_id][[self.data_1.id_column, 'target_id']]
+        res = df[df['source_id'] == obj_id][['source_id', 'target_id']]
         for r in res.itertuples(index=False):
             cluster.append(r[0])
             cluster.append(r[1])
