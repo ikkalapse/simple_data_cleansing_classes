@@ -17,6 +17,8 @@ class Finder:
 
         self.project = project
         self.data = [arg for arg in args if isinstance(arg, Data)]
+        if len(self.data) == 0:
+            raise Exception("Empty data!")
         self.matches_column = kwargs.get('matches_column', self.matches_column)
         # Files
         self.matches_filename = os.path.join(project.project_dir,
