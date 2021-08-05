@@ -38,29 +38,6 @@ class FindDuplicates(Finder, ABC):
         self.make_clusters()
         Finder.make_wide(self)
 
-    def make_long(self):
-        try:
-            df_wide = self.df_matches_wide
-            df_wide["id"] = df_wide.index
-            df_long = pd.wide_to_long(df_wide,
-                                      stubnames=[col for col in self.data_1_output_columns
-                                                 if col != self.data_1.id_column],
-                                      sep='-',
-                                      suffix=r'\w+',
-                                      i=[self.clusters_column, 'id'],
-                                      j='source') \
-                .reset_index() \
-                .drop(["id"], axis=1)
-            df_long.loc[df_long['source'] == 'trg', self.data_1.id_column] = df_long['target_id']
-            df_long.drop(["source", "target_id"], axis=1, inplace=True)
-            df_long.drop_duplicates(subset=[self.data_1.id_column, self.clusters_column],
-                                    keep='first',
-                                    inplace=True)
-            self._df_matches_long = df_long
-            self._df_matches_long.to_csv(os.path.join(self.project.project_dir, self.matches_long_filename))
-        except Exception as e:
-            raise Exception("Unable to create long dataframe!") from e
-
     def _collect_clusters(self, obj_id, cluster, df):
         res = df[df['source_id'] == obj_id][['source_id', 'target_id']]
         for r in res.itertuples(index=False):
@@ -84,15 +61,25 @@ class FindDuplicates(Finder, ABC):
         df_pairs[self.clusters_column] = df_pairs[self.clusters_column].astype(int)
         df_pairs.to_csv(self.matches_pairwise_filename, index=False)
 
-    @property
-    def df_matches_long(self):
-        """Return pandas dataframe contains matches."""
-
-        if self._df_matches_long is None and os.path.isfile(self.matches_long_filename):
-            try:
-                self._df_matches_long = pd.read_csv(self.matches_wide_filename,
-                                                    converters=self.converters)
-                self._df_matches_long.fillna('', inplace=True)
-            except Exception as e:
-                raise Exception("Unable to read matches wide dataframe!") from e
-        return self._df_matches_long
+    def make_long(self):
+        try:
+            df_wide = self.df_matches_wide
+            df_wide["id"] = df_wide.index
+            df_long = pd.wide_to_long(df_wide,
+                                      stubnames=[col for col in self.data_1_output_columns
+                                                 if col != self.data_1.id_column],
+                                      sep='-',
+                                      suffix=r'\w+',
+                                      i=[self.clusters_column, 'id'],
+                                      j='source') \
+                .reset_index() \
+                .drop(["id"], axis=1)
+            df_long.loc[df_long['source'] == 'trg', self.data_1.id_column] = df_long['target_id']
+            df_long.drop(["source", "target_id"], axis=1, inplace=True)
+            df_long.drop_duplicates(subset=[self.data_1.id_column, self.clusters_column],
+                                    keep='first',
+                                    inplace=True)
+            self._df_matches_long = df_long
+            self._df_matches_long.to_csv(os.path.join(self.project.project_dir, self.matches_long_filename))
+        except Exception as e:
+            raise Exception("Unable to create long dataframe!") from e
