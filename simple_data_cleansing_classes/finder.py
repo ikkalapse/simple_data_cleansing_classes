@@ -16,7 +16,7 @@ class Finder:
     def __init__(self, project: Project, *args, **kwargs):
 
         self.project = project
-        self.data = list(args)  # dataframes into list
+        self.data = [arg for arg in args if isinstance(arg, Data)]
         self.matches_column = kwargs.get('matches_column', self.matches_column)
         # Files
         self.matches_filename = os.path.join(project.project_dir,
