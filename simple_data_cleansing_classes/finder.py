@@ -28,11 +28,14 @@ class Finder:
         self._df_matches = None  # Matches dataframe
         self._df_matches_pairwise = None  # Matches pairwise dataframe
 
+        self._df_matches_wide = None
+
     def process(self):
         """Searching and saving matches."""
 
         self.search_matches()
         self.save_matches()
+        self.make_wide()
 
     def search_matches(self):
         """Method for filling self.matches dictionary."""
@@ -121,3 +124,48 @@ class Finder:
                 self.__dict__['data'].append(value)
         else:
             self.__dict__[name] = value
+
+    def make_wide(self):
+        """Merging pairwise dataframe with data (source and target items)."""
+
+        try:
+            df_1 = self.data_1.data_norm[self.data_1_output_columns] \
+                if self.data_1_output_columns is not None \
+                else self.data_1.data
+            df_1_id_col = self.data_1.id_column
+            if len(self.data) == 1:
+                df_2 = df_1
+                df_2_id_col = df_1_id_col
+            else:
+                df_2 = self.data_2.data_norm[self.data_2_output_columns] \
+                    if self.data_2_output_columns is not None \
+                    else self.data_2.data
+                df_2_id_col = self.data_2.id_column
+
+            self._df_matches_wide = pd.merge(self.df_matches_pairwise,
+                                             df_1.reset_index(drop=True),
+                                             left_on='source_id',
+                                             right_on=df_1_id_col)
+            self._df_matches_wide = pd.merge(self._df_matches_wide,
+                                             df_2.reset_index(drop=True),
+                                             left_on='target_id',
+                                             right_on=df_2_id_col,
+                                             suffixes=('-src', '-trg')) \
+                .rename(columns={df_1_id_col + '-src': df_1_id_col}) \
+                .drop([df_2_id_col + '-trg'], axis=1)
+            self._df_matches_wide.to_csv(os.path.join(self.project.project_dir, self.matches_wide_filename))
+        except Exception as e:
+            raise Exception("Unable to create wide dataframe!") from e
+
+    @property
+    def df_matches_wide(self):
+        """Return pandas dataframe contains matches."""
+
+        if self._df_matches_wide is None and os.path.isfile(self.matches_wide_filename):
+            try:
+                self._df_matches_wide = pd.read_csv(self.matches_wide_filename,
+                                                    converters=self.converters)
+                self._df_matches_wide.fillna('', inplace=True)
+            except Exception as e:
+                raise Exception("Unable to read matches wide dataframe!") from e
+        return self._df_matches_wide

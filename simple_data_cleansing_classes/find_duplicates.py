@@ -16,63 +16,53 @@ class FindDuplicates(Finder, ABC):
 
     clusters_column = 'matches_cluster'
 
-    '''def __init__(self, project: Project, data: Data):
-
-        self.data = data
-        self.project = project
-        # Files
-        self.duples_wide_filename = "duples_wide.csv"
-        self.duples_long_filename = "duples_long.csv"
-        # Initial values of class variables
-        self.duples_data = None
-        self._duples_wide_data = None  # Duplicates data in wide format
-        self._duples_long_data = None  # Duplicates data in long format
-        # Clustered duplicates data
-        self.clusters = None
-        self.duplicates = None'''
-
     def __init__(self, project: Project, data: Data, **kwargs):
 
         Finder.__init__(self, project, **kwargs)
         self.data_1 = data
+        self.data_1_output_columns = kwargs.get("data_1_output_columns", list(self.data_1.data.columns))
         self._df_matches_wide = None
         self._df_matches_long = None
         self._matches_clusters = None
         self.matches_wide_filename = self.matches_column + '_wide.csv'
         self.matches_long_filename = self.matches_column + '_long.csv'
-        self.data_1_output_columns = kwargs.get("data_1_output_columns", list(self.data_1.data.columns))
         self.clusters_column = kwargs.get("clusters_column", self.clusters_column)
 
     def process(self):
         """Searching, clustering and saving duplicates."""
 
         Finder.process(self)
-        self.make_clusters()
-        self.make_wide()
         self.make_long()
 
     def make_wide(self):
+        self.make_clusters()
+        Finder.make_wide(self)
+
+    '''def make_wide(self):
         """Merging pairwise dataframe with data (source and target items)."""
 
         try:
             df_1 = self.data_1.data_norm[self.data_1_output_columns] \
                 if self.data_1_output_columns is not None \
                 else self.data_1.data
+            df_2 = df_1
+            df_1_id_col = self.data_1.id_column
+            df_2_id_col = df_1_id_col
 
             self._df_matches_wide = pd.merge(self.df_matches_pairwise,
                                              df_1.reset_index(drop=True),
                                              left_on='source_id',
-                                             right_on=self.data_1.id_column)
+                                             right_on=df_1_id_col)
             self._df_matches_wide = pd.merge(self._df_matches_wide,
-                                             df_1.reset_index(drop=True),
+                                             df_2.reset_index(drop=True),
                                              left_on='target_id',
-                                             right_on=self.data_1.id_column,
+                                             right_on=df_2_id_col,
                                              suffixes=('-src', '-trg')) \
-                .rename(columns={self.data_1.id_column + '-src': self.data_1.id_column}) \
-                .drop([self.data_1.id_column + '-trg'], axis=1)
+                .rename(columns={df_1_id_col + '-src': df_1_id_col}) \
+                .drop([df_2_id_col + '-trg'], axis=1)
             self._df_matches_wide.to_csv(os.path.join(self.project.project_dir, self.matches_wide_filename))
         except Exception as e:
-            raise Exception("Unable to create wide dataframe!") from e
+            raise Exception("Unable to create wide dataframe!") from e'''
 
     def make_long(self):
         try:
@@ -121,7 +111,7 @@ class FindDuplicates(Finder, ABC):
         df_pairs.to_csv(self.matches_pairwise_filename, index=False)
         # self._matches_clusters = clusters
 
-    @property
+    '''@property
     def df_matches_wide(self):
         """Return pandas dataframe contains matches."""
 
@@ -132,7 +122,7 @@ class FindDuplicates(Finder, ABC):
                 self._df_matches_wide.fillna('', inplace=True)
             except Exception as e:
                 raise Exception("Unable to read matches wide dataframe!") from e
-        return self._df_matches_wide
+        return self._df_matches_wide'''
 
     @property
     def df_matches_long(self):
