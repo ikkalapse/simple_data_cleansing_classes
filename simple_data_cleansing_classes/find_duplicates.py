@@ -18,8 +18,8 @@ class FindDuplicates(Finder, ABC):
 
     def __init__(self, project: Project, data: Data, **kwargs):
 
-        Finder.__init__(self, project, **kwargs)
-        self.data_1 = data
+        Finder.__init__(self, project, data, **kwargs)
+        # self.data_1 = data
         self.data_1_output_columns = kwargs.get("data_1_output_columns", list(self.data_1.data.columns))
         self._df_matches_wide = None
         self._df_matches_long = None
