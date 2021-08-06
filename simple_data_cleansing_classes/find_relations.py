@@ -26,7 +26,7 @@ class FindRelations(Finder, ABC):
     def process(self):
         """Searching, clustering and saving duplicates."""
 
-        self.process()
+        Finder.process(self)
         self.make_long()
 
     def make_long(self):
