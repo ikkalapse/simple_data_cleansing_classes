@@ -176,7 +176,8 @@ class Finder:
         try:
             df_1_id_col = self.data_1.id_column
             df_2_id_col = df_1_id_col if len(self.data) == 1 else self.data_2.id_column
-            df_id_cols = list(set([df_1_id_col, df_2_id_col]))
+            df_id_cols = [df_1_id_col, df_2_id_col]
+            df_id_cols = list(set(df_id_cols))  # only unique values
 
             df_wide = self.df_matches_wide
             df_wide["id"] = df_wide.index
@@ -185,7 +186,7 @@ class Finder:
                                                  if col not in df_id_cols],
                                       sep='-',
                                       suffix=r'\w+',
-                                      i=[self.clusters_column, 'id'],
+                                      i=['id'],
                                       j='source') \
                 .reset_index() \
                 .drop(["id"], axis=1)

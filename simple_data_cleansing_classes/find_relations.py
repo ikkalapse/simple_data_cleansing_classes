@@ -13,9 +13,9 @@ class FindRelations(Finder, ABC):
     def __init__(self, project: Project, data_1: Data, data_2: Data,
                  data_1_output_columns, data_2_output_columns, **kwargs):
 
-        Finder.__init__(self, project, **kwargs)
-        self.data_1 = data_1  # First dataframe
-        self.data_2 = data_2  # Second dataframe
+        Finder.__init__(self, project, data_1, data_2, **kwargs)
+        # self.data_1 = data_1  # First dataframe
+        # self.data_2 = data_2  # Second dataframe
         self.data_1_output_columns = data_1_output_columns
         self.data_2_output_columns = data_2_output_columns
         self._df_matches_wide = None
@@ -27,47 +27,27 @@ class FindRelations(Finder, ABC):
         """Searching, clustering and saving duplicates."""
 
         self.process()
-        self.make_wide()
         self.make_long()
 
-    def make_wide(self):
-        try:
-            # Source data merging (data_1):
-            self._df_matches_wide = pd.merge(self.df_matches_pairwise,
-                                             self.data_1.data_norm[self.data_1_output_columns],
-                                             left_on='source_id', right_on=self.data_1.id_column)
-            # Target data merging (data_2):
-            self._df_matches_wide = pd.merge(self._df_matches_wide,
-                                             self.data_2.data_norm[self.data_2_output_columns],
-                                             left_on='target_id', right_on=self.data_2.id_column,
-                                             suffixes=('-src', '-trg')) \
-                .rename(columns={self.data_1.id_column + '-src': self.data_id.id_column}) \
-                .drop([self.data_2.id_column + '-trg'], axis=1)
-            self._df_matches_wide.to_csv(os.path.join(self.project.matches_dir, self.matches_wide_filename))
-        except Exception as e:
-            raise Exception("Unable to create wide dataframe with matches!") from e
-
     def make_long(self):
-        raise NotImplementedError
-
-    @property
-    def df_matches_wide(self):
-        if self._df_matches_wide is None:
-            try:
-                self._df_matches_wide = pd.read_csv(self.matches_wide_filename,
-                                                    converters=self.converters)
-                self._df_matches_wide.fillna('', inplace=True)
-            except:
-                pass
-        return self._df_matches_wide
-
-    @property
-    def df_matches_long(self):
-        if self._df_matches_long is None:
-            try:
-                self._df_matches_long = pd.read_csv(self.matches_long_filename,
-                                                    converters=self.converters)
-                self._df_matches_long.fillna('', inplace=True)
-            except:
-                pass
-        return self._df_matches_long
+        try:
+            df_wide = self.df_matches_wide
+            df_wide["id"] = df_wide.index
+            df_long = pd.wide_to_long(df_wide,
+                                      stubnames=[col for col in self.data_1_output_columns
+                                                 if col != self.data_1.id_column],
+                                      sep='-',
+                                      suffix=r'\w+',
+                                      i=[self.clusters_column, 'id'],
+                                      j='source') \
+                .reset_index() \
+                .drop(["id"], axis=1)
+            df_long.loc[df_long['source'] == 'trg', self.data_1.id_column] = df_long['target_id']
+            df_long.drop(["source", "target_id"], axis=1, inplace=True)
+            df_long.drop_duplicates(subset=[self.data_1.id_column, self.clusters_column],
+                                    keep='first',
+                                    inplace=True)
+            self._df_matches_long = df_long
+            self._df_matches_long.to_csv(os.path.join(self.project.project_dir, self.matches_long_filename))
+        except Exception as e:
+            raise Exception("Unable to create long dataframe!") from e
