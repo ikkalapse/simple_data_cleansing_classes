@@ -153,8 +153,11 @@ class Finder:
                                              left_on='target_id',
                                              right_on=df_2_id_col,
                                              suffixes=('-src', '-trg')) \
-                .rename(columns={df_1_id_col + '-src': df_1_id_col}) \
-                .drop([df_2_id_col + '-trg'], axis=1)
+                .rename(columns={df_1_id_col + '-src': df_1_id_col})
+            if len(self.data) == 1:
+                self._df_matches_wide = self._df_matches_wide.drop([df_2_id_col + '-trg'], axis=1)
+            else:
+                self._df_matches_wide = self._df_matches_wide.rename(columns={df_2_id_col + '-trg': df_2_id_col})
             self._df_matches_wide.to_csv(os.path.join(self.project.project_dir, self.matches_wide_filename))
         except Exception as e:
             raise Exception("Unable to create wide dataframe!") from e
