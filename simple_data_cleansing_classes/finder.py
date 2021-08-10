@@ -158,9 +158,14 @@ class Finder:
                 self._df_matches_wide = self._df_matches_wide.drop([df_2_id_col + '-trg'], axis=1)
             else:
                 self._df_matches_wide = self._df_matches_wide.rename(columns={df_2_id_col + '-trg': df_2_id_col})
-            self._df_matches_wide.to_csv(os.path.join(self.project.project_dir, self.matches_wide_filename))
+            # self._df_matches_wide.to_csv(os.path.join(self.project.project_dir, self.matches_wide_filename))
+            self.save_wide()
         except Exception as e:
             raise Exception("Unable to create wide dataframe!") from e
+
+    def save_wide(self):
+        self._df_matches_wide.to_csv(os.path.join(self.project.project_dir,
+                                                  self.matches_wide_filename))
 
     @property
     def df_matches_wide(self):
@@ -194,9 +199,13 @@ class Finder:
                 .reset_index() \
                 .drop(["id"], axis=1)
             self._df_matches_long = df_long
-            self._df_matches_long.to_csv(os.path.join(self.project.project_dir, self.matches_long_filename))
+            self.save_long()
         except Exception as e:
             raise Exception("Unable to create long dataframe!") from e
+
+    def save_long(self):
+        self._df_matches_long.to_csv(os.path.join(self.project.project_dir,
+                                                  self.matches_long_filename))
 
     @property
     def df_matches_long(self):
