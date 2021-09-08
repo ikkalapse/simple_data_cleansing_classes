@@ -83,3 +83,43 @@ class FindDuplicates(Finder, ABC):
             self._df_matches_long.to_csv(os.path.join(self.project.project_dir, self.matches_long_filename))
         except Exception as e:
             raise Exception("Unable to create long dataframe!") from e
+
+    '''def make_long(self):
+        try:
+            df_1_id_col = self.data_1.id_column
+            df_2_id_col = df_1_id_col if len(self.data) == 1 else self.data_2.id_column
+            df_id_cols = [df_1_id_col, df_2_id_col]
+            df_id_cols = list(set(df_id_cols))  # only unique values
+
+            df_wide = self.df_matches_wide
+            df_wide["id"] = df_wide.index
+            df_long = pd.wide_to_long(df_wide,
+                                      stubnames=[col for col in self.data_1_output_columns
+                                                 if col not in df_id_cols],
+                                      sep='-',
+                                      suffix=r'\w+',
+                                      i=['id'],
+                                      j='source') \
+                .reset_index() \
+                .drop(["id"], axis=1)
+            self._df_matches_long = df_long
+            self.save_long()
+        except Exception as e:
+            raise Exception("Unable to create long dataframe!") from e'''
+
+    def save_long(self):
+        self._df_matches_long.to_csv(os.path.join(self.project.project_dir,
+                                                  self.matches_long_filename))
+
+    @property
+    def df_matches_long(self):
+        """Return pandas dataframe contains matches."""
+
+        if self._df_matches_long is None and os.path.isfile(self.matches_long_filename):
+            try:
+                self._df_matches_long = pd.read_csv(self.matches_wide_filename,
+                                                    converters=self.converters)
+                self._df_matches_long.fillna('', inplace=True)
+            except Exception as e:
+                raise Exception("Unable to read matches wide dataframe!") from e
+        return self._df_matches_long
